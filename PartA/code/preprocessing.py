@@ -1,6 +1,7 @@
 import os
 import pathlib
 import numpy as np
+from sklearn import preprocessing
 
 DATA_PATH = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "data")
 
@@ -31,25 +32,54 @@ def print_sentence(sentence):
         if "<" and ">" not in word:
             print(vocab[int(word)], end=" ")
 
-def bag_of_words():
+def bag_of_words(data_lines):
 
     """
     Read the training data and create a bag of words representation.
     The final matrix (based on the input) will be a matrix of size: 8251 x 8520.
     8251 is the number of text docs and 8520 is the number of words in the vocabulary.
     """
-
-    # Read the training data
-    with open(os.path.join(DATA_PATH, "train-data.dat"), 'r') as f:
-        lines = f.readlines()
     
-    matrix = np.zeros((len(lines), 8520), dtype=int)
+    data_matrix = np.zeros((len(data_lines), 8520), dtype=int)
     # Create the bag of words representation
-    for i, line in enumerate(lines):
+    for i, line in enumerate(data_lines):
         for word in line.split():
             if "<" and ">" not in word:
-                matrix[i][int(word)] += 1
-    return matrix
+                data_matrix[i][int(word)] += 1
+    return data_matrix
+
+def normalize_data(data_matrix):
+
+    """
+    Normalize the bow matrix. Standardization is used.
+    """
+
+    return preprocessing.StandardScaler().fit_transform(data_matrix)
+
+def get_dataset(data_file_name, label_file_name):
+
+    """
+    Read training or test data and create bag of words representation, and normalize the data (if needed).
+    """
+
+    # Read the training or test data
+    with open(os.path.join(DATA_PATH, data_file_name), 'r') as f:
+        data_lines = f.readlines()
+    
+    # Read the training or test labels
+    with open(os.path.join(DATA_PATH, label_file_name), 'r') as f:
+        label_lines = f.readlines()
+    
+    # Create the bag of words representation and normalize data
+    bow_matrix = bag_of_words(data_lines)
+    normalized_data = normalize_data(bow_matrix)
+
+    # Create maxtrix for labels
+    label_matrix = np.zeros((len(label_lines), 20), dtype=int)
+    for i, line in enumerate(label_lines):
+        label_matrix[i] = np.array(line.split(), dtype=int)
+    
+    return normalized_data, label_matrix
 
 if __name__ == "__main__":
 
@@ -57,4 +87,5 @@ if __name__ == "__main__":
     # for i in sentences:
     #     print_sentence(i)
     #     print("\n")
-    bag_of_words()
+    X_train, y_train = get_dataset("train-data.dat", "train-label.dat")
+    X_test, y_test = get_dataset("test-data.dat", "test-label.dat")
