@@ -2,6 +2,7 @@ import os
 import pathlib
 import numpy as np
 from sklearn import preprocessing
+from matplotlib import pyplot as plt
 
 DATA_PATH = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "data")
 
@@ -48,13 +49,13 @@ def bag_of_words(data_lines):
                 data_matrix[i][int(word)] += 1
     return data_matrix
 
-def normalize_data(data_matrix):
+def normalize_data(data_matrix, choice):
 
     """
     Normalize the bow matrix. Standardization is used.
     """
 
-    return preprocessing.StandardScaler().fit_transform(data_matrix)
+    return preprocessing.StandardScaler().fit_transform(data_matrix) if choice else preprocessing.normalize(data_matrix)
 
 def get_dataset(data_file_name, label_file_name):
 
@@ -72,7 +73,12 @@ def get_dataset(data_file_name, label_file_name):
     
     # Create the bag of words representation and normalize data
     bow_matrix = bag_of_words(data_lines)
-    normalized_data = normalize_data(bow_matrix)
+    print(f"Maximal value in the matrix before norm before normalization: {np.amax(bow_matrix)}")
+    plt.hist(bow_matrix.ravel(), bins=np.arange(np.amin(bow_matrix), np.amax(bow_matrix)),  color='#0504aa', alpha=0.7, rwidth=0.85)
+    plt.yscale('log')
+    plt.margins(x=0.02)
+    plt.show()
+    normalized_data = normalize_data(bow_matrix, True)  # True for standardization, False for normalization
 
     # Create maxtrix for labels
     label_matrix = np.zeros((len(label_lines), 20), dtype=int)
@@ -87,5 +93,6 @@ if __name__ == "__main__":
     # for i in sentences:
     #     print_sentence(i)
     #     print("\n")
+
     X_train, y_train = get_dataset("train-data.dat", "train-label.dat")
     X_test, y_test = get_dataset("test-data.dat", "test-label.dat")
