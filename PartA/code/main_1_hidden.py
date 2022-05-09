@@ -91,3 +91,4 @@ if __name__ == "__main__":
     plot_result("accuracy", accuracy_all, accuracy_val_all, NUM_OF_HIDDEN_LAYERS)
     results = model.evaluate(X_test, y_test)  # Test the model using data never used for training
     print(results)
+    
