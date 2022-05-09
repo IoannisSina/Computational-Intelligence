@@ -1,10 +1,11 @@
 """
 This file is used for the network consisting of TWO hidden layers. Run the network with different learning rates and momentum.
+Test regularizers and choose the best one.
 """
 
 import os
 from subprocess import call
-from tensorflow.keras import Sequential, optimizers
+from tensorflow.keras import Sequential, optimizers, regularizers
 from tensorflow.keras.callbacks import EarlyStopping
 from keras.layers import Dense
 from sklearn.model_selection import KFold
@@ -19,6 +20,7 @@ NUM_OF_NODES_HIDDEN_1 = 0
 NUM_OF_NODES_HIDDEN_2 = 0
 CHOICE_lr_momentum = 2  # Optimal learning rate and momentum
 lr_momentum = [(0.001, 0.2), (0.001, 0.6), (0.05, 0.6), (0.1, 0.6)]
+r = 0.1
 
 def get_model(n_inputs, n_outputs):
 
@@ -29,7 +31,7 @@ def get_model(n_inputs, n_outputs):
 
     model = Sequential()
     model.add(Dense(NUM_OF_NODES_HIDDEN_1, input_dim=n_inputs, activation='relu'))
-    model.add(Dense(NUM_OF_NODES_HIDDEN_2, activation='relu'))
+    model.add(Dense(NUM_OF_NODES_HIDDEN_2, activation='relu', kernel_regularizer=regularizers.l2(r)))
     model.add(Dense(n_outputs, activation='sigmoid'))
 
     optimizer = optimizers.SGD(learning_rate=lr_momentum[CHOICE_lr_momentum][0], momentum=lr_momentum[CHOICE_lr_momentum][1])
@@ -47,10 +49,10 @@ def plot_result(metric, list1, list2, lr_momentum, hidden_layers):
     ax.plot(list1, label=metric)
     ax.plot(list2, label="val_" + metric)
     ax.legend()
-    ax.set_title(metric + " for {} hidden layer nodes and 5 epochs".format(NUM_OF_NODES_HIDDEN_1), fontsize=10)
+    ax.set_title(metric + " for r equal to {}".format(r), fontsize=10)
     ax.set_ylabel(metric, fontsize=10)
     ax.set_xlabel("Epochs", fontsize=10)
-    fig.savefig("../plots/{}_hidden-layers_{}_lr_{}_momentum_{}.png".format(metric, hidden_layers, lr_momentum[0], lr_momentum[1]))
+    fig.savefig("../plots/{}_hidden-layers_{}_lr_{}_momentum_{}_r_{}.png".format(metric, hidden_layers, lr_momentum[0], lr_momentum[1], r))
 
 if __name__ == "__main__":
     
