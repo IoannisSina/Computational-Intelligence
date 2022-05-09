@@ -3,7 +3,9 @@ This file is used for the network consisting of TWO hidden layers.
 """
 
 import os
+from subprocess import call
 from tensorflow.keras import Sequential, optimizers
+from tensorflow.keras.callbacks import EarlyStopping
 from keras.layers import Dense
 from sklearn.model_selection import KFold
 import matplotlib.pyplot as plt
@@ -56,7 +58,7 @@ if __name__ == "__main__":
     kf = KFold(n_splits=5)  # 5-fold cross validation
     n_inputs, n_outputs = X.shape[1], y.shape[1]
     hidden_layer_nodes = [(n_outputs + n_inputs) // 2, (n_outputs + n_inputs) // 4, (n_outputs + n_inputs) // 8]
-    NUM_OF_NODES_HIDDEN_1 = n_inputs + n_outputs  # Is the optimal number of nodes for the first hidden layer based on main1.py
+    NUM_OF_NODES_HIDDEN_1 = n_inputs + n_outputs  # Is the optimal number of nodes for the first hidden layer based on main_1_hidden.py
     NUM_OF_NODES_HIDDEN_2 = hidden_layer_nodes[0]
     model = get_model(n_inputs, n_outputs)  # Train the model with 5-fold cross validation
     model.summary()
@@ -68,11 +70,14 @@ if __name__ == "__main__":
     accuracy_all = [0] * epochs
     accuracy_val_all = [0] * epochs
 
+    # Early stopping technique based on validation accuracy
+    callback = EarlyStopping(monitor='val_accuracy', patience=3, verbose=1)
+
     for fold, (train_index, test_index) in enumerate(kf.split(X)):
         X_train, X_val = X[train_index], X[test_index]
         y_train, y_val = y[train_index], y[test_index]
 
-        history = model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=epochs)
+        history = model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=epochs, callbacks=[callback])
 
         binary_cross_entropy_all = [a + b for a, b in zip(binary_cross_entropy_all, history.history["binary_crossentropy"])]
         binary_cross_entropy_val_all = [a + b for a, b in zip(binary_cross_entropy_val_all, history.history["val_binary_crossentropy"])]
