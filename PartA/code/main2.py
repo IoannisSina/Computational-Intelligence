@@ -1,5 +1,5 @@
 """
-This file is used for the network consisting of ONE hidden layer.
+This file is used for the network consisting of TWO hidden layers.
 """
 
 import os
@@ -13,7 +13,8 @@ from preprocessing import get_dataset
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # avoid tesor flow warnings
 
-NUM_OF_NODES = 0
+NUM_OF_NODES_HIDDEN_1 = 0
+NUM_OF_NODES_HIDDEN_2 = 0
 
 def get_model(n_inputs, n_outputs):
 
@@ -23,7 +24,8 @@ def get_model(n_inputs, n_outputs):
     """
 
     model = Sequential()
-    model.add(Dense(NUM_OF_NODES, input_dim=n_inputs, activation='relu'))
+    model.add(Dense(NUM_OF_NODES_HIDDEN_1, input_dim=n_inputs, activation='relu'))
+    model.add(Dense(NUM_OF_NODES_HIDDEN_2, activation='relu'))
     model.add(Dense(n_outputs, activation='sigmoid'))
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=["categorical_crossentropy", "mean_squared_error", "accuracy"])
     return model
@@ -45,37 +47,32 @@ def plot_result(history, fold, hidden_layers):
         axs[metric[1], metric[2]].legend()
     axs[1, 0].set_xlabel("Epochs", fontsize=10)
     axs[1, 1].set_xlabel("Epochs", fontsize=10)
-    fig.savefig("plots/fold_{}_hidden-layers_{}_hidden-nodes_{}.png".format(fold, hidden_layers, NUM_OF_NODES))
+    fig.savefig("plots/fold_{}_hidden-layers_{}_hidden-nodes_{}.png".format(fold, hidden_layers, NUM_OF_NODES_HIDDEN_2))
 
 if __name__ == "__main__":
     
     # load data
     X, y = get_dataset("train-data.dat", "train-label.dat")
     X_test_diff, y_test_diff = get_dataset("test-data.dat", "test-label.dat")
-
-    kf = KFold(n_splits=5)
+    kf = KFold(n_splits=5)  # 5-fold cross validation
     n_inputs, n_outputs = X.shape[1], y.shape[1]
-    NUM_OF_NODES = n_outputs
+    NUM_OF_NODES_HIDDEN_1 = n_inputs + n_outputs  # Is the optimal number of nodes for the first hidden layer based on main1.py
+    NUM_OF_NODES_HIDDEN_2 = n_outputs
     model = get_model(n_inputs, n_outputs)  # Train the model with 5-fold cross validation
     model.summary()
-    epochs = 10
+    epochs = 5
 
     for fold, (train_index, test_index) in enumerate(kf.split(X)):
 
-        # Train the model using 5 CV
+        # Split data into train and test
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         print("Training model...")
         history = model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=epochs)
-        print(history.history)
 
-    results = model.evaluate(X_test_diff, y_test_diff)  # Test the model using data never used for training
-    print(results)
-
-
-
-    # y_hat = model.predict(X_test_diff)
-    # y_hat = y_hat.round().astype("int")
-    # acc = accuracy_score(y_test_diff, y_hat)
-    # print('Fold {} with accuracy {}'.format((fold+1), acc))
-    # plot_result(history, fold, 1)
+        # plot_result(history, "accuracy", fold)
+        y_hat = model.predict(X_test_diff)
+        y_hat = y_hat.round().astype("int")
+        acc = accuracy_score(y_test_diff, y_hat)
+        print('Fold {} with accuracy {}'.format((fold+1), acc))
+        plot_result(history, fold, 2)

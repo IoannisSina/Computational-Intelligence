@@ -73,11 +73,11 @@ def get_dataset(data_file_name, label_file_name):
     
     # Create the bag of words representation and normalize data
     bow_matrix = bag_of_words(data_lines)
-    print(f"Maximal value in the matrix before norm before normalization: {np.amax(bow_matrix)}")
-    plt.hist(bow_matrix.ravel(), bins=np.arange(np.amin(bow_matrix), np.amax(bow_matrix)),  color='#0504aa', alpha=0.7, rwidth=0.85)
-    plt.yscale('log')
-    plt.margins(x=0.02)
-    plt.show()
+    # print(f"Maximal value in the matrix before norm before normalization: {np.amax(bow_matrix)}")
+    # plt.hist(bow_matrix.ravel(), bins=np.arange(np.amin(bow_matrix), np.amax(bow_matrix)),  color='#0504aa', alpha=0.7, rwidth=0.85)
+    # plt.yscale('log')
+    # plt.margins(x=0.02)
+    # plt.show()
     normalized_data = normalize_data(bow_matrix, True)  # True for standardization, False for normalization
 
     # Create maxtrix for labels
