@@ -3,16 +3,16 @@ This file is used for the network consisting of TWO hidden layers.
 """
 
 import os
-from tensorflow.keras import Sequential
+from tensorflow.keras import Sequential, optimizers
 from keras.layers import Dense
 from sklearn.model_selection import KFold
-from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 
 from preprocessing import get_dataset
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # avoid tesor flow warnings
 
+NUM_OF_HIDDEN_LAYERS = 2
 NUM_OF_NODES_HIDDEN_1 = 0
 NUM_OF_NODES_HIDDEN_2 = 0
 
@@ -25,9 +25,12 @@ def get_model(n_inputs, n_outputs):
 
     model = Sequential()
     model.add(Dense(NUM_OF_NODES_HIDDEN_1, input_dim=n_inputs, activation='relu'))
-    model.add(Dense(NUM_OF_NODES_HIDDEN_2, activation='relu'))
+    model.add(Dense(NUM_OF_NODES_HIDDEN_2, activation='sigmoid'))
     model.add(Dense(n_outputs, activation='sigmoid'))
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=["categorical_crossentropy", "mean_squared_error", "accuracy"])
+
+    optimizer = optimizers.SGD(learning_rate=0.001)
+    metrics = ["binary_crossentropy", "mean_squared_error", "accuracy"]
+    model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=metrics)
     return model
 
 def plot_result(history, fold, hidden_layers):
@@ -56,23 +59,18 @@ if __name__ == "__main__":
     X_test_diff, y_test_diff = get_dataset("test-data.dat", "test-label.dat")
     kf = KFold(n_splits=5)  # 5-fold cross validation
     n_inputs, n_outputs = X.shape[1], y.shape[1]
+    hidden_layer_nodes = [n_outputs, (n_outputs + n_inputs) // 2, n_inputs + n_outputs]
     NUM_OF_NODES_HIDDEN_1 = n_inputs + n_outputs  # Is the optimal number of nodes for the first hidden layer based on main1.py
-    NUM_OF_NODES_HIDDEN_2 = n_outputs
+    NUM_OF_NODES_HIDDEN_2 = hidden_layer_nodes
     model = get_model(n_inputs, n_outputs)  # Train the model with 5-fold cross validation
     model.summary()
-    epochs = 5
+    epochs = 10
 
     for fold, (train_index, test_index) in enumerate(kf.split(X)):
-
-        # Split data into train and test
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         print("Training model...")
-        history = model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=epochs)
-
-        # plot_result(history, "accuracy", fold)
-        y_hat = model.predict(X_test_diff)
-        y_hat = y_hat.round().astype("int")
-        acc = accuracy_score(y_test_diff, y_hat)
-        print('Fold {} with accuracy {}'.format((fold+1), acc))
-        plot_result(history, fold, 2)
+        history = model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=epochs, verbose=2)
+    
+    results = model.evaluate(X_test_diff, y_test_diff)  # Test the model using data never used for training
+    print(results)
