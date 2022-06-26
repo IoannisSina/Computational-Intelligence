@@ -4,11 +4,13 @@ This file contains all functions needed for the Genetic Algorithm.
 import os
 import pathlib
 from math import log
-from random import choices, choice
+from random import choices
+from sklearn.feature_extraction.text import TfidfVectorizer
+import pandas as pd
 
 VOCAB_LENGTH = 8520
 POPULATION_SIZE = 20
-LOWER_BOUND = 1000
+LOWER_BOUND = 1000  # At least 1000 words must be chosen for any solution
 DATA_PATH = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "data")
 
 def generate_genome(length: int):
@@ -31,22 +33,10 @@ def generate_population(size=POPULATION_SIZE, genome_length=VOCAB_LENGTH):
 
     return [generate_genome(genome_length) for _ in range(size)]
 
-def repair_procedure(genome):
+def calculate_tf_idf_custom():
 
     """
-    This fucntion counts the numbers of ones in the given genome and repairs it.
-    It randomly replaces zeros with ones until the genome has LOWER_BOUND ones.
-    """
-
-    while sum(genome) < LOWER_BOUND:
-        genome[choice( range(0, POPULATION_SIZE) )] = 1
-
-    return genome
-
-def calculate_tf_idf():
-
-    """
-    This function calculates the mean of tf-idf metric for every word in the vocab.
+    This function calculates the mean of tf-idf metric for every word in the vocab. Custom implementation.
     Calculate once and store in a file.
     """
 
@@ -87,32 +77,89 @@ def calculate_tf_idf():
         mean_tf_idf_dict[i] = sum(tf_idf_dict[i]) / N
     
     # Store the mean tf-idf values in a file
-    with open(os.path.join(DATA_PATH, "mean_tf_idf.dat"), 'w') as f:
+    with open(os.path.join(DATA_PATH, "custom_mean_tf_idf_custom.dat"), 'w') as f:
         for i in range(0, VOCAB_LENGTH):
             to_write = str(i) + "," + str(mean_tf_idf_dict[i]) + "\n"
             f.write(to_write)
 
-def get_tf_idf_mean():
+def calculate_tf_idf_sklearn():
+
+    """
+    This function calculates the mean of tf-idf metric for every word in the vocab. Sk-learn implementation.
+    Calculate once and store in a file.
+    """
+
+    # Read the training data
+    with open(os.path.join(DATA_PATH, "train-data.dat"), 'r') as f:
+        train_lines = f.readlines()
+
+    # Read the vocabulary
+    vocab_df = pd.read_csv(os.path.join(DATA_PATH, "vocabs.txt"), sep=',' ,names= ["word", "word_id"], na_filter=False)
+    id_to_words = dict(zip(vocab_df.word_id, vocab_df.word))
+
+    # Create corpus and vectorizer
+    corpus = []
+    for line in train_lines:
+        doc = ""
+        for word_id in line.split():
+            if "<" and ">" not in word_id:
+                doc += id_to_words[int(word_id)] + " "
+        corpus.append(doc.rstrip())
+
+    vectorizer = TfidfVectorizer()
+    X = vectorizer.fit_transform(corpus)
+    assert X.shape[0] == len(corpus), "Error: X.shape[0] != len(corpus)"
+    assert X.shape[1] == VOCAB_LENGTH, "Error: len(vectorizer.get_feature_names()) != VOCAB_LENGTH"
+    
+    tf_idf_df = pd.DataFrame(X.todense(), columns=vectorizer.get_feature_names())
+
+    # Store the mean tf-idf values in a file
+    with open(os.path.join(DATA_PATH, "custom_mean_tf_idf_sklearn.dat"), 'w') as f:
+        for i in range(0, VOCAB_LENGTH):
+            word = id_to_words[i]
+            to_write = str(i) + "," + str(tf_idf_df[word].mean()) + "\n"
+            f.write(to_write)
+
+def get_tf_idf_mean(filename):
 
     """
     Read the file with the mean of the tf idf values and return a dict id: mean tf idf for each word in the Vocabulary.
     """
 
     tf_idf_mean_dict = {}
-    with open(os.path.join(DATA_PATH, "mean_tf_idf.dat"), 'r') as f:
+    with open(os.path.join(DATA_PATH, filename), 'r') as f:
         for line in f.readlines():
             word_id, mean_tf_idf = line.split(",")
             tf_idf_mean_dict[int(word_id)] = float(mean_tf_idf)
 
     return tf_idf_mean_dict
 
+def fitness(genome, tf_idf_mean_dict):
+
+    """
+    Calculate the fitness of the given genome. If the genome has less than LOWER_BOUND ones, return 0.
+    The score is calculated based on the tf-idf values and the number of ones in the genome.
+    Genomes with more ones are given a penalty.
+    """
+
+    if sum(genome) < LOWER_BOUND:
+        return 0
+    
+    genome_score = 0 
+    for word_id, value in enumerate(genome):
+        if value == 1:
+            genome_score += tf_idf_mean_dict[word_id]
+
+    return genome_score
+
 if __name__ == "__main__":
 
     # Calculate the mean tf-idf values ONCE for every word and store them in a file
-    # calculate_tf_idf()
+    # calculate_tf_idf_custom()
+    calculate_tf_idf_sklearn()
 
-    mean_tf_idf = get_tf_idf_mean()
-    population = generate_population()
-    for genome in population:
-        genome = repair_procedure(genome)
-    print(mean_tf_idf)
+    tf_idf_filename = "custom_mean_tf_idf_sklearn.dat"
+    mean_tf_idf = get_tf_idf_mean(tf_idf_filename)
+   
+    # mean_tf_idf = get_tf_idf_mean(tf_idf_filename)
+    # population = generate_population()
