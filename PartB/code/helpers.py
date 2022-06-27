@@ -7,14 +7,16 @@ import pathlib
 import random
 from math import log
 from sklearn.feature_extraction.text import TfidfVectorizer
+from matplotlib import markers, pyplot as plt
 import pandas as pd
 import numpy as np
 
 VOCAB_LENGTH = 8520
 LOWER_BOUND = 1000  # At least 1000 words must be chosen for any solution
 DATA_PATH = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "data")
+DATA_PATH_graphs = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "graphs")
 
-def generate_population(population_size, genome_length):
+def generate_population(population_size=20, genome_length=VOCAB_LENGTH):
 
     def generate_genome(length):
 
@@ -25,7 +27,7 @@ def generate_population(population_size, genome_length):
         This function generates a random genome (containing ones and zeros).
         """
 
-        return random.choices([0, 1], k=length)
+        return np.random.randint(0, 2, length).tolist()
 
     """
     A population is a list of genomes.
@@ -141,23 +143,26 @@ def fitness(genome, tf_idf_mean_dict):
     if num_of_ones < LOWER_BOUND:
         return 0
     
-    genome_score = 0
+    score = 0
     for word_id, value in enumerate(genome):
         if value == 1:
-            genome_score += tf_idf_mean_dict[word_id]
+            score += tf_idf_mean_dict[word_id]
     
-    # The number of ones denotes the percentage of the genome score that will be deducted from the total score. 
+    # The number of ones denotes the percentage of the genome score that will be deducted from the total score.
     # If a genome has max ones then the penalty will be equal to the genome score and the returned value will be 0.
-    penalty = ( ( num_of_ones - LOWER_BOUND ) / ( len(genome) - LOWER_BOUND ) ) * genome_score
-    return genome_score - penalty
+    penalty = ( ( num_of_ones - LOWER_BOUND ) / ( len(genome) - LOWER_BOUND ) ) * score
+    return score - penalty
 
 # GENETIC OPERATORS
 
-def roulette_wheel_pair_selection(population, tf_idf_mean_dict, population_size):
+def roulette_wheel_pair_selection(population, tf_idf_mean_dict):
 
     """
     Select the parents for the next generation.
+    Not used here because the genomes have very similar fitness values.
     """
+
+    initial_size = len(population)
 
     # Calculate the fitness of each genome
     fitness_scores = [fitness(genome, tf_idf_mean_dict) for genome in population]
@@ -166,13 +171,37 @@ def roulette_wheel_pair_selection(population, tf_idf_mean_dict, population_size)
     # Calculate the probability of each genome
     probabilities = [fitness_score / total_fitness for fitness_score in fitness_scores]
 
-    parents = random.choices(population, weights=probabilities, k=population_size)
+    parents = random.choices(population, weights=probabilities, k=initial_size)
 
-    assert len(parents) == population_size, "Error: len(parents) != population_size"
+    assert len(parents) == initial_size, "Error: len(parents) roulette != population_size"
 
     return parents
 
-def single_point_crossover(parent1, parent2, pc):
+def tournament_selection(population, tf_idf_mean_dict, k=10):
+
+    """
+    Select the parents for the next generation.
+    """
+
+    initial_size = len(population)
+
+    all_fitness = [fitness(genome, tf_idf_mean_dict) for genome in population]
+
+    parents = []
+    for _ in range(initial_size):
+        random_pos = np.random.randint(initial_size)
+
+        for temp_random_pos in np.random.randint(0, initial_size, k):
+            if all_fitness[temp_random_pos] > all_fitness[random_pos]:
+                random_pos = temp_random_pos
+        
+        parents.append(population[random_pos])
+
+    assert len(parents) == initial_size, "Error: len(parents) tournament != population_size"
+
+    return parents
+
+def single_point_crossover(parent1, parent2, pc=.9):
 
     """
     Perform single point crossover on the parents.
@@ -180,23 +209,38 @@ def single_point_crossover(parent1, parent2, pc):
 
     assert len(parent1) == len(parent2), "Error: len(parent1) != len(parent2)"
 
-    if random.random() < pc:
-        cp = random.randint( 1, (len(parent1) - 2) )
+    if np.random.rand() < pc:
+        cp = np.random.randint(1, len(parent1)-2)
         return parent1[:cp] + parent2[cp:], parent2[:cp] + parent1[cp:]
 
     return parent1, parent2
 
-def mutation(genome, pm):
+def mutation(genome, pm=.1):
 
     """
     Perform mutation on the genome. Flip a bit only if the random number is less than the mutation probability.
     """
 
     for i in range(len(genome)):
-        if random.random() < pm:
+        if np.random.rand() < pm:
             genome[i] = 1 - genome[i]
 
     return genome
+
+# Plot function
+
+def plot_fitness(fitness_history, population_size, pc, pm):
+
+    """
+    Plot the fitness history.
+    """
+
+    plt.plot(fitness_history, color='red')
+    plt.xlabel("Generations")
+    plt.ylabel("Mean Fitness")
+    plt.title("Fitness History | Pop size: {} | PC: {} | PM: {}".format(population_size, pc, pm))
+    filename = "fitness_pop_size_{}_pc_{}_pm_{}.png".format(population_size, pc, pm)
+    plt.savefig(os.path.join(DATA_PATH_graphs, filename))
 
 if __name__ == "__main__":
 
@@ -208,9 +252,10 @@ if __name__ == "__main__":
     # print(single_point_crossover([1, 1, 1, 1, 1], [0, 0, 0, 0, 0], .9))
     # print(mutation([0, 0, 0, 0], .1))
 
-    mean_tf_idf = get_tf_idf_mean("custom_mean_tf_idf_sklearn.dat")
-    population = generate_population(20, VOCAB_LENGTH)
-    selected_parents = roulette_wheel_pair_selection(population, mean_tf_idf, 20)
-    offspring_a , offspring_b = single_point_crossover(selected_parents[0], selected_parents[1], .9)
-    offspring_a = mutation(offspring_a, .1)
-    offspring_b = mutation(offspring_b, .1)
+    mean_tf_idf = get_tf_idf_mean("sklearn_mean_tf_idf.dat")
+    population = generate_population()
+    selected_parents_roulette = roulette_wheel_pair_selection(population, mean_tf_idf)
+    selected_parents_tournament = tournament_selection(population, mean_tf_idf)
+    offspring_a , offspring_b = single_point_crossover(selected_parents_tournament[0], selected_parents_tournament[1])
+    offspring_a = mutation(offspring_a)
+    offspring_b = mutation(offspring_b)
