@@ -7,7 +7,8 @@ import pathlib
 import random
 from math import log
 from sklearn.feature_extraction.text import TfidfVectorizer
-from matplotlib import markers, pyplot as plt
+from matplotlib import pyplot as plt
+import matplotlib.ticker
 import pandas as pd
 import numpy as np
 
@@ -229,18 +230,20 @@ def mutation(genome, pm=.1):
 
 # Plot function
 
-def plot_fitness(fitness_history, population_size, pc, pm):
+def plot_fitness(fitness_history, generations, population_size, pc, pm):
 
     """
     Plot the fitness history.
     """
 
-    plt.plot(fitness_history, color='red')
+    x = list(range(generations))
+    plt.plot(x, fitness_history, color='red')
     plt.xlabel("Generations")
     plt.ylabel("Mean Fitness")
-    plt.title("Fitness History | Pop size: {} | PC: {} | PM: {}".format(population_size, pc, pm))
+    plt.title("Fitness History | Pop size: {} | PC: {} | PM: {} | Gens: {}".format(population_size, pc, pm,  generations+1))
     filename = "fitness_pop_size_{}_pc_{}_pm_{}.png".format(population_size, pc, pm)
     plt.savefig(os.path.join(DATA_PATH_graphs, filename))
+    plt.close()
 
 if __name__ == "__main__":
 
@@ -259,3 +262,4 @@ if __name__ == "__main__":
     offspring_a , offspring_b = single_point_crossover(selected_parents_tournament[0], selected_parents_tournament[1])
     offspring_a = mutation(offspring_a)
     offspring_b = mutation(offspring_b)
+    
