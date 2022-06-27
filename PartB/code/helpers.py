@@ -13,25 +13,25 @@ POPULATION_SIZE = 20
 LOWER_BOUND = 1000  # At least 1000 words must be chosen for any solution
 DATA_PATH = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "data")
 
-def generate_genome(length: int):
+def generate_population(population_size, genome_length):
 
-    """
-    A genome for the population will be a vector of 8520 ones and zeros.
-    If the genome has a 1 at index i, then the corresponding word is chosen for this solution.
-    At least LOWER_BOUND must be chosen for any genome (solution).
-    This function generates a random genome (containing ones and zeros).
-    """
+    def generate_genome(length):
 
-    return choices([0, 1], k=length)
+        """
+        A genome for the population will be a vector of 8520 ones and zeros.
+        If the genome has a 1 at index i, then the corresponding word is chosen for this solution.
+        At least LOWER_BOUND must be chosen for any genome (solution).
+        This function generates a random genome (containing ones and zeros).
+        """
 
-def generate_population(size=POPULATION_SIZE, genome_length=VOCAB_LENGTH):
+        return choices([0, 1], k=length)
 
     """
     A population is a list of genomes.
     This function generates a random population (containing genomes).
     """
 
-    return [generate_genome(genome_length) for _ in range(size)]
+    return [generate_genome(genome_length) for _ in range(population_size)]
 
 def calculate_tf_idf_custom():
 
@@ -139,27 +139,36 @@ def fitness(genome, tf_idf_mean_dict):
     """
     Calculate the fitness of the given genome. If the genome has less than LOWER_BOUND ones, return 0.
     The score is calculated based on the tf-idf values and the number of ones in the genome.
-    Genomes with more ones are given a penalty.
+    Genomes with more ones are given a bigger penalty.
     """
 
-    if sum(genome) < LOWER_BOUND:
+    assert len(genome) == VOCAB_LENGTH, "Error: len(genome) != VOCAB_LENGTH"
+
+    num_of_ones = sum(genome)
+    if num_of_ones < LOWER_BOUND:
         return 0
     
-    genome_score = 0 
+    genome_score = 0
     for word_id, value in enumerate(genome):
         if value == 1:
             genome_score += tf_idf_mean_dict[word_id]
+    
+    # The number of ones denotes the percentage of the genome score that will be deducted from the total score. 
+    # If a genome has max ones then the penalty will be equal to the genome score and the returned value will be 0.
+    penalty = ( ( num_of_ones - LOWER_BOUND ) / ( len(genome) - LOWER_BOUND ) ) * genome_score
+    return genome_score - penalty
 
-    return genome_score
+# GENETIC OPERATORS
+
+
+
 
 if __name__ == "__main__":
 
     # Calculate the mean tf-idf values ONCE for every word and store them in a file
     # calculate_tf_idf_custom()
-    calculate_tf_idf_sklearn()
+    # calculate_tf_idf_sklearn()
 
-    tf_idf_filename = "custom_mean_tf_idf_sklearn.dat"
-    mean_tf_idf = get_tf_idf_mean(tf_idf_filename)
-   
-    # mean_tf_idf = get_tf_idf_mean(tf_idf_filename)
-    # population = generate_population()
+    mean_tf_idf = get_tf_idf_mean("custom_mean_tf_idf_sklearn.dat")
+    population = generate_population(POPULATION_SIZE, VOCAB_LENGTH)
+    print(fitness(population[14], mean_tf_idf))
