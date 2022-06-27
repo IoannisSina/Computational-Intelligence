@@ -40,7 +40,7 @@ parameters = [
     ]
 custom_parameters = [(300, .7, (1.0 / VOCAB_LENGTH))]
 
-for parameter in custom_parameters:
+for parameter in parameters:
     population_size, pc, pm = parameter
     all_best_fitness_history = []
     mean_of_best_fitness = 0
