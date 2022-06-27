@@ -1,6 +1,7 @@
 """
 This file contains all functions needed for the Genetic Algorithm.
 """
+
 import os
 import pathlib
 import random
@@ -10,7 +11,6 @@ import pandas as pd
 import numpy as np
 
 VOCAB_LENGTH = 8520
-POPULATION_SIZE = 20
 LOWER_BOUND = 1000  # At least 1000 words must be chosen for any solution
 DATA_PATH = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "data")
 
@@ -51,7 +51,7 @@ def calculate_tf_idf_custom():
     mean_tf_idf_dict = {}
 
     # Fill the idf_dict with zeros lists. For every word count the number of occurances in each document. If the word is not in the document, it is 0
-    for i in range(0, VOCAB_LENGTH):
+    for i in range(VOCAB_LENGTH):
         tf_dict[i] = [0] * N
         tf_idf_dict[i] = [0] * N
 
@@ -62,20 +62,20 @@ def calculate_tf_idf_custom():
                 tf_dict[int(word)][i] += 1  # Count the number of occurances of the word in the document
                 document_count_words[i] += 1  # Count the number of words in the document
 
-    for i in range(0, VOCAB_LENGTH):
+    for i in range(VOCAB_LENGTH):
         occurances_in_all_documents = sum(1 if x!=0 else 0 for x in tf_dict[i])
         assert occurances_in_all_documents <= N, "Error: occurances_in_all_documents > N"
         idf = log(N / occurances_in_all_documents)
 
-        for j in range(0, N):
+        for j in range(N):
             tf = tf_dict[i][j] / document_count_words[j]
             tf_idf_dict[i][j] = tf * idf
     
-    for i in range(0, VOCAB_LENGTH):
+    for i in range(VOCAB_LENGTH):
         mean_tf_idf_dict[i] = sum(tf_idf_dict[i]) / N
     
-    with open(os.path.join(DATA_PATH, "custom_mean_tf_idf_custom.dat"), 'w') as f:
-        for i in range(0, VOCAB_LENGTH):
+    with open(os.path.join(DATA_PATH, "custom_mean_tf_idf.dat"), 'w') as f:
+        for i in range(VOCAB_LENGTH):
             to_write = str(i) + "," + str(mean_tf_idf_dict[i]) + "\n"
             f.write(to_write)
 
@@ -107,8 +107,8 @@ def calculate_tf_idf_sklearn():
     
     tf_idf_df = pd.DataFrame(X.todense(), columns=vectorizer.get_feature_names())
 
-    with open(os.path.join(DATA_PATH, "custom_mean_tf_idf_sklearn.dat"), 'w') as f:
-        for i in range(0, VOCAB_LENGTH):
+    with open(os.path.join(DATA_PATH, "sklearn_mean_tf_idf.dat"), 'w') as f:
+        for i in range(VOCAB_LENGTH):
             word = id_to_words[i]
             to_write = str(i) + "," + str(tf_idf_df[word].mean()) + "\n"
             f.write(to_write)
@@ -192,7 +192,7 @@ def mutation(genome, pm):
     Perform mutation on the genome. Flip a bit only if the random number is less than the mutation probability.
     """
 
-    for i in range(0, len(genome)):
+    for i in range(len(genome)):
         if random.random() < pm:
             genome[i] = 1 - genome[i]
 
@@ -204,7 +204,6 @@ if __name__ == "__main__":
     Test the functions.
     """
     # Calculate the mean tf-idf values ONCE for every word and store them in a file
-    # calculate_tf_idf_custom()
     # calculate_tf_idf_sklearn()
     # print(single_point_crossover([1, 1, 1, 1, 1], [0, 0, 0, 0, 0], .9))
     # print(mutation([0, 0, 0, 0], .1))
