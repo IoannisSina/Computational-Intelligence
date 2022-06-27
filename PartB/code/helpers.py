@@ -3,10 +3,11 @@ This file contains all functions needed for the Genetic Algorithm.
 """
 import os
 import pathlib
+import random
 from math import log
-from random import choices
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
+import numpy as np
 
 VOCAB_LENGTH = 8520
 POPULATION_SIZE = 20
@@ -24,7 +25,7 @@ def generate_population(population_size, genome_length):
         This function generates a random genome (containing ones and zeros).
         """
 
-        return choices([0, 1], k=length)
+        return random.choices([0, 1], k=length)
 
     """
     A population is a list of genomes.
@@ -40,15 +41,14 @@ def calculate_tf_idf_custom():
     Calculate once and store in a file.
     """
 
-    # Read the training data
     with open(os.path.join(DATA_PATH, "train-data.dat"), 'r') as f:
         train_lines = f.readlines()
 
-    N = len(train_lines)  # Number of training documents
-    tf_dict = {}  # Dictionary of tf values for every word
-    document_count_words = [0] * N  # Number of words in each document
-    tf_idf_dict = {} # Dictionary of tf-idf values for every word in each document
-    mean_tf_idf_dict = {} # Dictionary of mean tf-idf values for every word
+    N = len(train_lines)
+    tf_dict = {}
+    document_count_words = [0] * N
+    tf_idf_dict = {}
+    mean_tf_idf_dict = {}
 
     # Fill the idf_dict with zeros lists. For every word count the number of occurances in each document. If the word is not in the document, it is 0
     for i in range(0, VOCAB_LENGTH):
@@ -62,21 +62,18 @@ def calculate_tf_idf_custom():
                 tf_dict[int(word)][i] += 1  # Count the number of occurances of the word in the document
                 document_count_words[i] += 1  # Count the number of words in the document
 
-    # Fill tf-idf dictionary with the tf-idf values
     for i in range(0, VOCAB_LENGTH):
-        occurances_in_all_documents = sum(1 if x!=0 else 0 for x in tf_dict[i])  # Used for idf calculation
+        occurances_in_all_documents = sum(1 if x!=0 else 0 for x in tf_dict[i])
         assert occurances_in_all_documents <= N, "Error: occurances_in_all_documents > N"
-        idf = log(N / occurances_in_all_documents)  # Calculate idf once
+        idf = log(N / occurances_in_all_documents)
 
         for j in range(0, N):
-            tf = tf_dict[i][j] / document_count_words[j]  # Calculate tf
-            tf_idf_dict[i][j] = tf * idf  # Calculate tf-idf
+            tf = tf_dict[i][j] / document_count_words[j]
+            tf_idf_dict[i][j] = tf * idf
     
-    # Calculate the mean tf-idf for every word
     for i in range(0, VOCAB_LENGTH):
         mean_tf_idf_dict[i] = sum(tf_idf_dict[i]) / N
     
-    # Store the mean tf-idf values in a file
     with open(os.path.join(DATA_PATH, "custom_mean_tf_idf_custom.dat"), 'w') as f:
         for i in range(0, VOCAB_LENGTH):
             to_write = str(i) + "," + str(mean_tf_idf_dict[i]) + "\n"
@@ -89,15 +86,12 @@ def calculate_tf_idf_sklearn():
     Calculate once and store in a file.
     """
 
-    # Read the training data
     with open(os.path.join(DATA_PATH, "train-data.dat"), 'r') as f:
         train_lines = f.readlines()
 
-    # Read the vocabulary
     vocab_df = pd.read_csv(os.path.join(DATA_PATH, "vocabs.txt"), sep=',' ,names= ["word", "word_id"], na_filter=False)
     id_to_words = dict(zip(vocab_df.word_id, vocab_df.word))
 
-    # Create corpus and vectorizer
     corpus = []
     for line in train_lines:
         doc = ""
@@ -113,7 +107,6 @@ def calculate_tf_idf_sklearn():
     
     tf_idf_df = pd.DataFrame(X.todense(), columns=vectorizer.get_feature_names())
 
-    # Store the mean tf-idf values in a file
     with open(os.path.join(DATA_PATH, "custom_mean_tf_idf_sklearn.dat"), 'w') as f:
         for i in range(0, VOCAB_LENGTH):
             word = id_to_words[i]
@@ -160,15 +153,65 @@ def fitness(genome, tf_idf_mean_dict):
 
 # GENETIC OPERATORS
 
+def roulette_wheel_pair_selection(population, tf_idf_mean_dict, population_size):
 
+    """
+    Select the parents for the next generation.
+    """
 
+    # Calculate the fitness of each genome
+    fitness_scores = [fitness(genome, tf_idf_mean_dict) for genome in population]
+    total_fitness = sum(fitness_scores)
+
+    # Calculate the probability of each genome
+    probabilities = [fitness_score / total_fitness for fitness_score in fitness_scores]
+
+    parents = random.choices(population, weights=probabilities, k=population_size)
+
+    assert len(parents) == population_size, "Error: len(parents) != population_size"
+
+    return parents
+
+def single_point_crossover(parent1, parent2, pc):
+
+    """
+    Perform single point crossover on the parents.
+    """
+
+    assert len(parent1) == len(parent2), "Error: len(parent1) != len(parent2)"
+
+    if random.random() < pc:
+        cp = random.randint( 1, (len(parent1) - 2) )
+        return parent1[:cp] + parent2[cp:], parent2[:cp] + parent1[cp:]
+
+    return parent1, parent2
+
+def mutation(genome, pm):
+
+    """
+    Perform mutation on the genome. Flip a bit only if the random number is less than the mutation probability.
+    """
+
+    for i in range(0, len(genome)):
+        if random.random() < pm:
+            genome[i] = 1 - genome[i]
+
+    return genome
 
 if __name__ == "__main__":
 
+    """
+    Test the functions.
+    """
     # Calculate the mean tf-idf values ONCE for every word and store them in a file
     # calculate_tf_idf_custom()
     # calculate_tf_idf_sklearn()
+    # print(single_point_crossover([1, 1, 1, 1, 1], [0, 0, 0, 0, 0], .9))
+    # print(mutation([0, 0, 0, 0], .1))
 
     mean_tf_idf = get_tf_idf_mean("custom_mean_tf_idf_sklearn.dat")
-    population = generate_population(POPULATION_SIZE, VOCAB_LENGTH)
-    print(fitness(population[14], mean_tf_idf))
+    population = generate_population(20, VOCAB_LENGTH)
+    selected_parents = roulette_wheel_pair_selection(population, mean_tf_idf, 20)
+    offspring_a , offspring_b = single_point_crossover(selected_parents[0], selected_parents[1], .9)
+    offspring_a = mutation(offspring_a, .1)
+    offspring_b = mutation(offspring_b, .1)
