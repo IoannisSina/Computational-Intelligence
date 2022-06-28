@@ -5,6 +5,7 @@ from sklearn import preprocessing
 from matplotlib import pyplot as plt
 
 DATA_PATH = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "data")
+GENETIC_BAG_OF_WORDS = True
 
 def print_sentence(sentence):
 
@@ -49,6 +50,31 @@ def bag_of_words(data_lines):
                 data_matrix[i][int(word)] += 1
     return data_matrix
 
+def bag_of_words_genetic_vocabs(data_lines):
+
+    """
+    Read the training data and create a bag of words representation based on the new vocabs
+    """
+
+    with open(os.path.join(DATA_PATH, "new_vocabs_genetic.txt"), 'r') as f:
+        new_vocabs_genetic_lines = f.readlines()
+    
+    new_vocal_len = len(new_vocabs_genetic_lines)
+    data_matrix = np.zeros((len(data_lines), new_vocal_len), dtype=int)
+
+    # Create dict old_word_id: [new_word_id]
+    old_word_id_to_new_word_id = {}
+    for line in new_vocabs_genetic_lines:
+        _, old_word_id, new_word_id = line.split(",")
+        old_word_id_to_new_word_id[int(old_word_id.strip())] = int(new_word_id.strip())
+
+    for i, line in enumerate(data_lines):
+        for word in line.split():
+            if "<" and ">" not in word:
+                if word in old_word_id_to_new_word_id:
+                    data_matrix[old_word_id_to_new_word_id[int(word)]] += 1
+    return data_matrix
+
 def normalize_data(data_matrix, choice):
 
     """
@@ -72,7 +98,11 @@ def get_dataset(data_file_name, label_file_name):
         label_lines = f.readlines()
     
     # Create the bag of words representation and normalize data
-    bow_matrix = bag_of_words(data_lines)
+    if GENETIC_BAG_OF_WORDS:
+        bow_matrix = bag_of_words_genetic_vocabs(data_lines)
+    else:
+        bow_matrix = bag_of_words(data_lines)
+
     # print(f"Maximal value in the matrix before norm before normalization: {np.amax(bow_matrix)}")
     # plt.hist(bow_matrix.ravel(), bins=np.arange(np.amin(bow_matrix), np.amax(bow_matrix)),  color='#0504aa', alpha=0.7, rwidth=0.85)
     # plt.yscale('log')
@@ -96,3 +126,7 @@ if __name__ == "__main__":
 
     X_train, y_train = get_dataset("train-data.dat", "train-label.dat")
     X_test, y_test = get_dataset("test-data.dat", "test-label.dat")
+    print(X_test.shape)
+    print(y_test.shape)
+    print(X_train.shape)
+    print(y_train.shape)
