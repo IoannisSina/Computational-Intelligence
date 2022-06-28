@@ -245,6 +245,37 @@ def plot_fitness(fitness_history, generations, population_size, pc, pm):
     plt.savefig(os.path.join(DATA_PATH_plots, filename))
     plt.close()
 
+# Create new vocab based on the based genome
+def create_new_vocab():
+
+    """
+    Create new vocab to use for training neural net of PartA. Dimensionality reduction.
+    """
+
+    with open(os.path.join(DATA_PATH, "custom_best_genome_from_genetic.dat"), 'r') as f:
+        best_genome = f.read()
+
+    with open(os.path.join(DATA_PATH, "vocabs.txt"), 'r') as f:
+        vocab_lines = f.readlines()
+
+    _ , best_genome = best_genome.split(",")
+    best_genome = [int(x) for x in best_genome.split()]
+    
+    # Create dict id: word for the old vocab
+    id_to_word_old = {}
+    for line in vocab_lines:
+        word, id = line.split(",")
+        id_to_word_old[int(id.strip())] = word
+    
+    # Create new vocab word, old word id, new word id
+    with open(os.path.join(DATA_PATH, "new_vocabs_genetic.txt"), 'w') as f:
+        current_new_id = 0
+        for i in range(len(best_genome)):
+            if best_genome[i] == 1:
+                to_write = "{}, {}, {}\n".format(id_to_word_old[i], i, current_new_id)
+                current_new_id += 1
+                f.write(to_write)
+
 if __name__ == "__main__":
 
     """
@@ -255,11 +286,13 @@ if __name__ == "__main__":
     # print(single_point_crossover([1, 1, 1, 1, 1], [0, 0, 0, 0, 0], .9))
     # print(mutation([0, 0, 0, 0], .1))
 
-    mean_tf_idf = get_tf_idf_mean("sklearn_mean_tf_idf.dat")
-    population = generate_population()
-    selected_parents_roulette = roulette_wheel_pair_selection(population, mean_tf_idf)
-    selected_parents_tournament = tournament_selection(population, mean_tf_idf)
-    offspring_a , offspring_b = single_point_crossover(selected_parents_tournament[0], selected_parents_tournament[1])
-    offspring_a = mutation(offspring_a)
-    offspring_b = mutation(offspring_b)
-    
+    # mean_tf_idf = get_tf_idf_mean("sklearn_mean_tf_idf.dat")
+    # population = generate_population()
+    # selected_parents_roulette = roulette_wheel_pair_selection(population, mean_tf_idf)
+    # selected_parents_tournament = tournament_selection(population, mean_tf_idf)
+    # offspring_a , offspring_b = single_point_crossover(selected_parents_tournament[0], selected_parents_tournament[1])
+    # offspring_a = mutation(offspring_a)
+    # offspring_b = mutation(offspring_b)
+
+    # Last part. Create new vocab
+    create_new_vocab()
