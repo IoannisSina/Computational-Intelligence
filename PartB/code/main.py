@@ -22,7 +22,7 @@ DATA_PATH = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()
 GENERATIONS_TO_WAIT = 10
 ELITISM = True
 MAX_GENERATIONS = 500
-TIMES_TO_RUN = 10
+TIMES_TO_RUN = 1
 
 mean_tf_idf = get_tf_idf_mean("sklearn_mean_tf_idf.dat")
 best_genome_of_all, best_fitness_of_all = [] , -1
@@ -40,7 +40,7 @@ parameters = [
     ]
 custom_parameters = [(300, .7, (1.0 / VOCAB_LENGTH))]
 
-for parameter in parameters:
+for parameter in custom_parameters:
     population_size, pc, pm = parameter
     all_best_fitness_history = []
     mean_of_best_fitness = 0
@@ -69,7 +69,7 @@ for parameter in parameters:
                 best_genome, best_fitness = population[0], fitness(population[0], mean_tf_idf)
                 generations_without_improvement = 0
 
-            # print("Generation: {} | Best fitness: {} | Number of words selected: {} | Improvement: {}%".format(i, best_fitness, sum(population[0]), improvement))
+            print("Generation: {} | Best fitness: {} | Number of words selected: {} | Improvement: {}%".format(i, best_fitness, sum(population[0]), improvement))
 
             next_generation = []
 
@@ -118,5 +118,5 @@ for parameter in parameters:
 
 # Write best genome to file
 assert len(best_genome_of_all) == VOCAB_LENGTH, "Error: len(best_genome_of_all) != VOCAB_LENGTH"
-with open(os.path.join(DATA_PATH, "best_genome_from_genetic.dat"), "w") as f:
+with open(os.path.join(DATA_PATH, "custom_best_genome_from_genetic.dat"), "w") as f:
     f.write(str(best_fitness_of_all) + ", " + ' '.join(str(bit) for bit in best_genome_of_all))
