@@ -126,7 +126,4 @@ if __name__ == "__main__":
 
     X_train, y_train = get_dataset("train-data.dat", "train-label.dat")
     X_test, y_test = get_dataset("test-data.dat", "test-label.dat")
-    print(X_test.shape)
-    print(y_test.shape)
-    print(X_train.shape)
-    print(y_train.shape)
+    
