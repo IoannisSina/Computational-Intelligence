@@ -15,7 +15,7 @@ import numpy as np
 VOCAB_LENGTH = 8520
 LOWER_BOUND = 1000  # At least 1000 words must be chosen for any solution
 DATA_PATH = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "data")
-DATA_PATH_graphs = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "graphs")
+DATA_PATH_plots = os.path.join(os.path.dirname(pathlib.Path(__file__).parent.resolve()) , "plots")
 
 def generate_population(population_size=20, genome_length=VOCAB_LENGTH):
 
@@ -240,9 +240,9 @@ def plot_fitness(fitness_history, generations, population_size, pc, pm):
     plt.plot(x, fitness_history, color='red')
     plt.xlabel("Generations")
     plt.ylabel("Mean Fitness")
-    plt.title("Fitness History | Pop size: {} | PC: {} | PM: {} | Gens: {}".format(population_size, pc, pm,  generations+1))
-    filename = "fitness_pop_size_{}_pc_{}_pm_{}.png".format(population_size, pc, pm)
-    plt.savefig(os.path.join(DATA_PATH_graphs, filename))
+    plt.title("Fitness History | Pop size: {} | PC: {} | PM: {} | Gens: {}".format(population_size,  round(pc,4), round(pm,4),  generations+1))
+    filename = "fitness_pop_size_{}_pc_{}_pm_{}.png".format(population_size, round(pc,4), round(pm,4))
+    plt.savefig(os.path.join(DATA_PATH_plots, filename))
     plt.close()
 
 if __name__ == "__main__":

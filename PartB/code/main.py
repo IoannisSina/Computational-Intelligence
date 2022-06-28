@@ -44,6 +44,7 @@ for parameter in parameters:
     population_size, pc, pm = parameter
     all_best_fitness_history = []
     mean_of_best_fitness = 0
+    mean_generations = 0
     max_generation_reached = 0
     print("----------------------------Population size: {} | PC: {} | PM: {}----------------------------".format(population_size, pc, pm))
 
@@ -51,7 +52,8 @@ for parameter in parameters:
         population = generate_population(population_size, VOCAB_LENGTH)
         best_genome, best_fitness = population[0], fitness(population[0], mean_tf_idf)
         generations_without_improvement = 0
-        temp_fitness_history = [] 
+        temp_fitness_history = []
+        temp_generation_reached = 0
 
         for i in range(MAX_GENERATIONS):
             population = sorted(population, key=lambda x: fitness(x, mean_tf_idf), reverse=True)
@@ -85,9 +87,11 @@ for parameter in parameters:
             population = next_generation
             assert len(population) == population_size, "Error: len(population) != POPULATION_SIZE"
             if i > max_generation_reached: max_generation_reached = i
+            if i > temp_generation_reached: temp_generation_reached = i
 
         all_best_fitness_history.append(temp_fitness_history)
         mean_of_best_fitness += best_fitness
+        mean_generations += temp_generation_reached
         print("Loop number {}  |  Best genome has {} words selected and a fitness of {}".format(l, sum(best_genome), best_fitness))
 
         # Keep the best genome of all runs
@@ -105,9 +109,11 @@ for parameter in parameters:
         assert len(all_best_fitness_history[h]) == generations, "Error: len(all_best_fitness_history[h]) != generations"
 
     mean_of_best_fitness /= TIMES_TO_RUN
+    mean_generations /= TIMES_TO_RUN
     mean_of_all_fitness_history = [sum(x) / len(x) for x in zip(*all_best_fitness_history)]
     plot_fitness(mean_of_all_fitness_history, generations, population_size, pc, pm)
     print("Mean of best fitness: {}".format(mean_of_best_fitness))
+    print("Mean of generations: {}".format(int(mean_generations)))
     print("--------------------------------------------------------------------------------------------------------------------")
 
 # Write best genome to file
